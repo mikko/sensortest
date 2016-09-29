@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Temperature sensor</title>
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/lodash/4.15.0/lodash.min.js"></script>
+		<style type="text/css">
+			.value-container {
+				font-size: 50px;
+				padding: 20px;
+			}
+			.label {
+				height: 100%;
+				float: left;
+				width: 50%;
+
+			}
+			.value {
+				height: 100%;
+				float: right;
+				width: 50%;
+				text-align: right;
+			}
+			.temp .value {
+				font-size: 250px;
+				font-weight: bold;
+			}
+			.history {
+				font-size: 20px;
+			}
+			.temp {
+				font-size: 80px;
+			}
+			.press {
+				
+			}
+			.alt {
+
+			}
+			.hum {
+			
+			}
+			.line {
+				fill: none;
+				stroke: black;
+				stroke-width: 2px;
+			}
+		</style>
+	</head>
+	<body>
+	<div id="ui"></div>
+	<script type="text/javascript">
+		// set the dimensions and margins of the graph
+		var margin = {top: 20, right: 20, bottom: 30, left: 50},
+		    width = 1660 - margin.left - margin.right,
+		    height = 650 - margin.top - margin.bottom;
+
+		// set the ranges
+		var x = d3.scaleTime().range([0, width]);
+		var y = d3.scaleLinear().range([height, 0]);
+
+		// define the line
+		var valueline = d3.line()
+		    .x(function(d) { return x(d.time); })
+		    .y(function(d) { return y(d.temperature); });
+
+		// append the svg obgect to the body of the page
+		// appends a 'group' element to 'svg'
+		// moves the 'group' element to the top left margin
+		var svg = d3.select("body").append("svg")
+		    .attr("width", width + margin.left + margin.right)
+		    .attr("height", height + margin.top + margin.bottom)
+		  .append("g")
+		    .attr("transform",
+		          "translate(" + margin.left + "," + margin.top + ")");
+
+		var firstDraw = true;
+
+		var draw = function(data) {
+			// format the data
+				data.forEach(function(d) {
+					d.time = d3.isoParse(d.time);
+					d.temperature = + d.temperature;
+				});
+
+				// Scale the range of the data
+				x.domain(d3.extent(data, function(d) { return d.time; }));
+				
+				var minTemp = d3.min(data, function(d) { return d.temperature; });
+				var maxTemp = d3.max(data, function(d) { return d.temperature; });
+				var tempMargin = (maxTemp - minTemp) * 0.1;
+
+				y.domain([
+					 minTemp - tempMargin,
+					 maxTemp + tempMargin
+				]);
+
+			if (firstDraw) {
+				firstDraw = false;
+				
+				// Add the valueline path.
+				svg.append("path")
+					.data([data])
+					.attr("class", "line")
+					.attr("d", valueline);
+
+				// Add the X Axis
+				svg.append("g")
+					.attr("transform", "translate(0," + height + ")")
+					.attr("class", "x-axis")
+					.call(d3.axisBottom(x));
+
+				// Add the Y Axis
+				svg.append("g")
+					.attr("class", "y-axis")
+					.call(d3.axisLeft(y));
+			}
+			else {
+				// Add the valueline path.
+				svg.select(".line")
+					.data([data])
+					.attr("class", "line")
+					.attr("d", valueline);
+
+				// Add the X Axis
+				svg.select(".x-axis")
+					.attr("transform", "translate(0," + height + ")")
+					.call(d3.axisBottom(x));
+
+				// Add the Y Axis
+				svg.select(".y-axis")
+					.call(d3.axisLeft(y));
+			}	
+		}
+
+		const template = _.template(`
+			<div class="value-container temp">
+				<div class="label"> 
+					Temperature:
+				</div>
+				<div class="value">
+					<%= temperature %>
+				</div>				
+			</div>	
+		`);
+
+		var updateUI = function() {
+			function reqListener () {
+				var responseData = JSON.parse(this.responseText);
+				draw(responseData.history.temperature);
+				document.getElementById("ui").innerHTML = template(responseData)
+				var now = new Date();
+				now = now.toString().split("2016")[1].split("GMT")[0];
+				//document.getElementById("ui").innerHTML = `<div>${now}</div>` + this.responseText;
+			}
+
+			var oReq = new XMLHttpRequest();
+			oReq.addEventListener("load", reqListener);
+			oReq.open("GET", "/api/data");
+			oReq.send();				
+		}
+		setTimeout(updateUI, 1);
+		
+		setInterval(updateUI, 10000);
+	</script>
+	</body>
+</html>
