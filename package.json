@@ -1,0 +1,25 @@
+{
+  "name": "sensortest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "logTemp.js",
+  "dependencies": {
+    "express": "^4.14.0",
+    "lodash": "^4.15.0",
+    "serialport": "^4.0.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mjpohja/sensortest.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mjpohja/sensortest/issues"
+  },
+  "homepage": "https://github.com/mjpohja/sensortest#readme"
+}
