@@ -129,7 +129,7 @@ port.on("open", () => {
                 historyData.altitude.push({ time: now, altitude: parsedMessage.altitude });
                 historyData.humidity.push({ time: now, humidity: parsedMessage.humidity });
                 Object.keys(historyData).forEach(key => {
-                    if (historyData[key].length > 120) {
+                    if (historyData[key].length > 2880) {
                         historyData[key].shift();
                     }
                 })
