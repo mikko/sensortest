@@ -82,13 +82,23 @@ const template = _.template(`
     </div>
 */
 
-
-
-
+/*
+historyData = _.mapValues(historyData, (val, key) => {
+    return _.range(100).map( x => {
+        let now = new Date().toString();
+        let item = { time: now };
+        item[key] = Math.random() * 20;
+        return item;
+    });
+});
+*/
 
 app.get('/api/data', function (req, res) {
-  let tempHistory = historyData.temperature.slice().reverse();
-  res.send(Object.assign(sensorData, { history: { temperature: tempHistory } }));
+    let tempHistory = historyData.temperature.slice().reverse();
+    let sensorHistory = _.mapValues(historyData, ar => {
+        return ar.slice().reverse();
+    });
+    res.send(Object.assign(sensorData, { history: sensorHistory }));
 });
 
 app.listen(3000, function () {
@@ -123,7 +133,7 @@ port.on("open", () => {
                         historyData[key].shift();
                     }
                 })
-                console.log("Temperature", parsedMessage.temperature);
+                console.log("Sensordata", JSON.stringify(parsedMessage, null, 2));
                 sensorData = parsedMessage;
                 message = "";
             }
@@ -133,4 +143,5 @@ port.on("open", () => {
         }       
         //console.log("data", data.toString("ascii"));
     });
+
 })
