@@ -22,7 +22,6 @@
 				text-align: right;
 			}
 			.temp .value {
-				font-size: 250px;
 				font-weight: bold;
 			}
 			.history {
@@ -31,38 +30,71 @@
 			.temp {
 				font-size: 80px;
 			}
-			.press {
-				
+			.pressure {
+				color: red;
 			}
 			.alt {
 
 			}
-			.hum {
-			
+			.humidity {
+				color: blue;
 			}
-			.line {
+			.temperature-line {
 				fill: none;
 				stroke: black;
 				stroke-width: 2px;
 			}
+			.pressure-line {
+				fill: none;
+				stroke: red;
+				stroke-width: 2px;
+			}
+			.humidity-line {
+				fill: none;
+				stroke: blue;
+				stroke-width: 2px;
+			}
+			.y-axis-temperature {
+				fill: black;
+			}
+                        .y-axis-pressure {
+                                fill: red;
+                        }
+                        .y-axis-humidity {
+                                fill: blue;
+                        }
+
 		</style>
 	</head>
 	<body>
 	<div id="ui"></div>
 	<script type="text/javascript">
 		// set the dimensions and margins of the graph
-		var margin = {top: 20, right: 20, bottom: 30, left: 50},
+		var margin = {top: 20, right: 20, bottom: 30, left: 150},
 		    width = 1660 - margin.left - margin.right,
 		    height = 650 - margin.top - margin.bottom;
 
 		// set the ranges
 		var x = d3.scaleTime().range([0, width]);
-		var y = d3.scaleLinear().range([height, 0]);
+		var yTemp = d3.scaleLinear().range([height, 0]);
+		var yPressure = d3.scaleLinear().range([height, 0]);
+		var yHumidity = d3.scaleLinear().range([height, 0]);
 
 		// define the line
-		var valueline = d3.line()
+		var temperatureLine = d3.line()
 		    .x(function(d) { return x(d.time); })
-		    .y(function(d) { return y(d.temperature); });
+		    .y(function(d) { return yTemp(d.temperature); });
+
+		// define the line
+		var pressureLine = d3.line()
+		    .x(function(d) { return x(d.time); })
+		    .y(function(d) { return yPressure(d.pressure); });
+
+		// define the line
+		var humidityLine = d3.line()
+		    .x(function(d) { return x(d.time); })
+		    .y(function(d) { return yHumidity(d.humidity); });
+
 
 		// append the svg obgect to the body of the page
 		// appends a 'group' element to 'svg'
@@ -78,31 +110,65 @@
 
 		var draw = function(data) {
 			// format the data
-				data.forEach(function(d) {
-					d.time = d3.isoParse(d.time);
-					d.temperature = + d.temperature;
+				data = _.mapValues(data, (value, key) => {
+					return value.map(function(d) {
+  						d.time = d3.isoParse(d.time);
+						d[key] = +d[key];
+						return d;
+					});	
 				});
 
 				// Scale the range of the data
-				x.domain(d3.extent(data, function(d) { return d.time; }));
+				x.domain(d3.extent(data.temperature, function(d) { return d.time; }));
 				
-				var minTemp = d3.min(data, function(d) { return d.temperature; });
-				var maxTemp = d3.max(data, function(d) { return d.temperature; });
+				var minTemp = d3.min(data.temperature, function(d) { return d.temperature; });
+				var maxTemp = d3.max(data.temperature, function(d) { return d.temperature; });
 				var tempMargin = (maxTemp - minTemp) * 0.1;
 
-				y.domain([
+				var minPressure = d3.min(data.pressure, function(d) { return d.pressure; });
+				var maxPressure = d3.max(data.pressure, function(d) { return d.pressure; });
+				var pressureMargin = (maxPressure - minPressure) * 0.1;
+
+				var minHumidity = d3.min(data.humidity, function(d) { return d.humidity; });
+				var maxHumidity = d3.max(data.humidity, function(d) { return d.humidity; });
+				var humidityMargin = (maxHumidity - minHumidity) * 0.1;
+
+				yTemp.domain([
 					 minTemp - tempMargin,
 					 maxTemp + tempMargin
+				]);
+
+				yPressure.domain([
+					 minPressure - pressureMargin,
+					 maxPressure + pressureMargin
+				]);
+
+				yHumidity.domain([
+					 minHumidity - humidityMargin,
+					 maxHumidity + humidityMargin
 				]);
 
 			if (firstDraw) {
 				firstDraw = false;
 				
-				// Add the valueline path.
+				// Add the Temperatureline path.
 				svg.append("path")
-					.data([data])
-					.attr("class", "line")
-					.attr("d", valueline);
+					.data([data.temperature])
+					.attr("class", "temperature-line")
+					.attr("d", temperatureLine);
+
+				// Add the Temperatureline path.
+				svg.append("path")
+					.data([data.pressure])
+					.attr("class", "pressure-line")
+					.attr("d", pressureLine);
+
+				// Add the Temperatureline path.
+				svg.append("path")
+					.data([data.humidity])
+					.attr("class", "humidity-line")
+					.attr("d", humidityLine);
+
 
 				// Add the X Axis
 				svg.append("g")
@@ -112,15 +178,34 @@
 
 				// Add the Y Axis
 				svg.append("g")
-					.attr("class", "y-axis")
-					.call(d3.axisLeft(y));
+					.attr("class", "y-axis-temperature")
+					.call(d3.axisLeft(yTemp));
+                                svg.append("g")
+                                        .attr("class", "y-axis-pressure")
+					.attr("transform", "translate(-50,0)")
+                                        .call(d3.axisLeft(yPressure));
+                                svg.append("g")
+                                        .attr("class", "y-axis-humidity")
+					.attr("transform", "translate(-100,0)")
+                                        .call(d3.axisLeft(yHumidity));
+
+
 			}
 			else {
-				// Add the valueline path.
-				svg.select(".line")
-					.data([data])
-					.attr("class", "line")
-					.attr("d", valueline);
+				// Add the Temperatureline path.
+				svg.select(".temperature-line")
+					.data([data.temperature])
+					.attr("d", temperatureLine);
+
+				// Add the Temperatureline path.
+				svg.select(".pressure-line")
+					.data([data.pressure])
+					.attr("d", pressureLine);
+
+				// Add the Temperatureline path.
+				svg.select(".humidity-line")
+					.data([data.humidity])
+					.attr("d", humidityLine);
 
 				// Add the X Axis
 				svg.select(".x-axis")
@@ -128,8 +213,15 @@
 					.call(d3.axisBottom(x));
 
 				// Add the Y Axis
-				svg.select(".y-axis")
-					.call(d3.axisLeft(y));
+				svg.select(".y-axis-temperature")
+					.call(d3.axisLeft(yTemp));
+                                svg.select("g")
+                                        .attr("class", "y-axis-pressure")
+                                        .call(d3.axisLeft(yPressure));
+                                svg.select("g")
+                                        .attr("class", "y-axis-humidity")
+                                        .call(d3.axisLeft(yHumidity));
+
 			}	
 		}
 
@@ -142,12 +234,29 @@
 					<%= temperature %>
 				</div>				
 			</div>	
+                        <div class="value-container pressure">
+                                <div class="label">
+                                        Pressure:
+                                </div>
+                                <div class="value">
+                                        <%= pressure %>
+                                </div>
+                        </div>
+                        <div class="value-container humidity">
+                                <div class="label">
+                                        Humidity:
+                                </div>
+                                <div class="value">
+                                        <%= humidity %>
+                                </div>
+                        </div>
+
 		`);
 
 		var updateUI = function() {
 			function reqListener () {
 				var responseData = JSON.parse(this.responseText);
-				draw(responseData.history.temperature);
+				draw(responseData.history);
 				document.getElementById("ui").innerHTML = template(responseData)
 				var now = new Date();
 				now = now.toString().split("2016")[1].split("GMT")[0];
